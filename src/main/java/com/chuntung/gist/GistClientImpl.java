@@ -22,7 +22,7 @@ class GistClientImpl implements GistClient {
 
     private static final String DEFAULT_BASE_URL = "https://api.github.com";
     private static final String ACCEPT_HEADER = "application/vnd.github+json";
-    private static final String API_VERSION_HEADER = "2022-11-28";
+    private static final String API_VERSION_HEADER = "2026-03-10";
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -38,7 +38,7 @@ class GistClientImpl implements GistClient {
 
     @Override
     public List<Gist> listGists(ListGistsParams params) {
-        String url = buildUrl("/user/gists", params);
+        String url = buildUrl("/gists", params);
         HttpRequest request = buildGetRequest(url);
         return executeListRequest(request);
     }
