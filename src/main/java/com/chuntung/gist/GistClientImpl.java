@@ -8,6 +8,7 @@ import com.chuntung.gist.model.GistComment;
 import com.chuntung.gist.model.GistCommentRequest;
 import com.chuntung.gist.model.GistCommit;
 import com.chuntung.gist.model.ListGistsParams;
+import com.chuntung.gist.model.PaginationParams;
 import com.chuntung.gist.model.UpdateGistRequest;
 
 import java.io.IOException;
@@ -40,7 +41,7 @@ class GistClientImpl implements GistClient {
 
     @Override
     public List<Gist> listGists(ListGistsParams params) {
-        String url = buildUrl("/user/gists", params);
+        String url = buildUrl("/gists", params);
         HttpRequest request = buildGetRequest(url);
         return executeListRequest(request, Gist.class);
     }
@@ -89,16 +90,16 @@ class GistClientImpl implements GistClient {
     }
 
     @Override
-    public List<GistCommit> listGistCommits(String gistId) {
+    public List<GistCommit> listGistCommits(String gistId, PaginationParams params) {
         requireNonBlank(gistId, "gistId");
-        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/commits");
+        HttpRequest request = buildGetRequest(buildUrl("/gists/" + gistId + "/commits", params));
         return executeListRequest(request, GistCommit.class);
     }
 
     @Override
-    public List<Gist> listGistForks(String gistId) {
+    public List<Gist> listGistForks(String gistId, PaginationParams params) {
         requireNonBlank(gistId, "gistId");
-        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/forks");
+        HttpRequest request = buildGetRequest(buildUrl("/gists/" + gistId + "/forks", params));
         return executeListRequest(request, Gist.class);
     }
 
@@ -136,9 +137,9 @@ class GistClientImpl implements GistClient {
     }
 
     @Override
-    public List<GistComment> listGistComments(String gistId) {
+    public List<GistComment> listGistComments(String gistId, PaginationParams params) {
         requireNonBlank(gistId, "gistId");
-        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/comments");
+        HttpRequest request = buildGetRequest(buildUrl("/gists/" + gistId + "/comments", params));
         return executeListRequest(request, GistComment.class);
     }
 
@@ -292,15 +293,26 @@ class GistClientImpl implements GistClient {
         if (params == null) {
             return baseUrl + path;
         }
+        return buildUrl(path, params.getSince(), params.getPerPage(), params.getPage());
+    }
+
+    private String buildUrl(String path, PaginationParams params) {
+        if (params == null) {
+            return baseUrl + path;
+        }
+        return buildUrl(path, null, params.getPerPage(), params.getPage());
+    }
+
+    private String buildUrl(String path, String since, Integer perPage, Integer page) {
         List<String> parts = new ArrayList<>();
-        if (params.getSince() != null) {
-            parts.add("since=" + encode(params.getSince()));
+        if (since != null) {
+            parts.add("since=" + encode(since));
         }
-        if (params.getPerPage() != null) {
-            parts.add("per_page=" + params.getPerPage());
+        if (perPage != null) {
+            parts.add("per_page=" + perPage);
         }
-        if (params.getPage() != null) {
-            parts.add("page=" + params.getPage());
+        if (page != null) {
+            parts.add("page=" + page);
         }
         String query = String.join("&", parts);
         return baseUrl + path + (query.isEmpty() ? "" : "?" + query);

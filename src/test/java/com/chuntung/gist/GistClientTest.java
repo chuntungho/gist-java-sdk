@@ -10,6 +10,7 @@ import com.chuntung.gist.model.GistCommentRequest;
 import com.chuntung.gist.model.GistCommit;
 import com.chuntung.gist.model.GistFileContent;
 import com.chuntung.gist.model.ListGistsParams;
+import com.chuntung.gist.model.PaginationParams;
 import com.chuntung.gist.model.UpdateGistRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -125,7 +126,8 @@ class GistClientTest {
 
         verify(mockHttpClient).send(captor.capture(), any());
         String url = captor.getValue().uri().toString();
-        assertTrue(url.contains("/user/gists"));
+        assertTrue(url.contains("/gists?"));
+        assertFalse(url.contains("/user/gists"));
         assertTrue(url.contains("per_page=10"));
         assertTrue(url.contains("page=2"));
         assertTrue(url.contains("since="));
@@ -300,7 +302,7 @@ class GistClientTest {
         stubResponse(200, COMMIT_LIST_JSON);
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
 
-        List<GistCommit> commits = client.listGistCommits(GIST_ID);
+        List<GistCommit> commits = client.listGistCommits(GIST_ID, null);
 
         verify(mockHttpClient).send(captor.capture(), any());
         assertEquals("GET", captor.getValue().method());
@@ -311,9 +313,23 @@ class GistClientTest {
     }
 
     @Test
+    void listGistCommits_withPagination_buildsCorrectUrl() throws Exception {
+        stubResponse(200, COMMIT_LIST_JSON);
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+
+        client.listGistCommits(GIST_ID, PaginationParams.builder().perPage(50).page(3).build());
+
+        verify(mockHttpClient).send(captor.capture(), any());
+        String url = captor.getValue().uri().toString();
+        assertTrue(url.contains("/gists/" + GIST_ID + "/commits?"));
+        assertTrue(url.contains("per_page=50"));
+        assertTrue(url.contains("page=3"));
+    }
+
+    @Test
     void listGistCommits_blankId_throwsIllegalArgument() {
-        assertThrows(IllegalArgumentException.class, () -> client.listGistCommits(""));
-        assertThrows(IllegalArgumentException.class, () -> client.listGistCommits(null));
+        assertThrows(IllegalArgumentException.class, () -> client.listGistCommits("", null));
+        assertThrows(IllegalArgumentException.class, () -> client.listGistCommits(null, null));
     }
 
     // --- listGistForks ---
@@ -323,12 +339,26 @@ class GistClientTest {
         stubResponse(200, GIST_LIST_JSON);
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
 
-        List<Gist> forks = client.listGistForks(GIST_ID);
+        List<Gist> forks = client.listGistForks(GIST_ID, null);
 
         verify(mockHttpClient).send(captor.capture(), any());
         assertEquals("GET", captor.getValue().method());
         assertTrue(captor.getValue().uri().toString().endsWith("/gists/" + GIST_ID + "/forks"));
         assertEquals(1, forks.size());
+    }
+
+    @Test
+    void listGistForks_withPagination_buildsCorrectUrl() throws Exception {
+        stubResponse(200, GIST_LIST_JSON);
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+
+        client.listGistForks(GIST_ID, PaginationParams.builder().perPage(20).page(2).build());
+
+        verify(mockHttpClient).send(captor.capture(), any());
+        String url = captor.getValue().uri().toString();
+        assertTrue(url.contains("/gists/" + GIST_ID + "/forks?"));
+        assertTrue(url.contains("per_page=20"));
+        assertTrue(url.contains("page=2"));
     }
 
     // --- forkGist ---
@@ -415,13 +445,27 @@ class GistClientTest {
         stubResponse(200, COMMENT_LIST_JSON);
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
 
-        List<GistComment> comments = client.listGistComments(GIST_ID);
+        List<GistComment> comments = client.listGistComments(GIST_ID, null);
 
         verify(mockHttpClient).send(captor.capture(), any());
         assertEquals("GET", captor.getValue().method());
         assertTrue(captor.getValue().uri().toString().endsWith("/gists/" + GIST_ID + "/comments"));
         assertEquals(1, comments.size());
         assertEquals("nice gist!", comments.get(0).getBody());
+    }
+
+    @Test
+    void listGistComments_withPagination_buildsCorrectUrl() throws Exception {
+        stubResponse(200, COMMENT_LIST_JSON);
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+
+        client.listGistComments(GIST_ID, PaginationParams.builder().perPage(15).page(4).build());
+
+        verify(mockHttpClient).send(captor.capture(), any());
+        String url = captor.getValue().uri().toString();
+        assertTrue(url.contains("/gists/" + GIST_ID + "/comments?"));
+        assertTrue(url.contains("per_page=15"));
+        assertTrue(url.contains("page=4"));
     }
 
     // --- createGistComment ---

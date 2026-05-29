@@ -7,6 +7,7 @@ import com.chuntung.gist.model.GistComment;
 import com.chuntung.gist.model.GistCommentRequest;
 import com.chuntung.gist.model.GistCommit;
 import com.chuntung.gist.model.ListGistsParams;
+import com.chuntung.gist.model.PaginationParams;
 import com.chuntung.gist.model.UpdateGistRequest;
 
 import java.util.List;
@@ -94,19 +95,21 @@ public interface GistClient {
      * Lists commits for a gist.
      *
      * @param gistId the gist identifier
+     * @param params optional pagination parameters (may be {@code null})
      * @return list of gist commits
      * @throws GistException on API error
      */
-    List<GistCommit> listGistCommits(String gistId);
+    List<GistCommit> listGistCommits(String gistId, PaginationParams params);
 
     /**
      * Lists forks of a gist.
      *
      * @param gistId the gist identifier
+     * @param params optional pagination parameters (may be {@code null})
      * @return list of forked gists
      * @throws GistException on API error
      */
-    List<Gist> listGistForks(String gistId);
+    List<Gist> listGistForks(String gistId, PaginationParams params);
 
     /**
      * Forks a gist.
@@ -150,10 +153,11 @@ public interface GistClient {
      * Lists comments on a gist.
      *
      * @param gistId the gist identifier
+     * @param params optional pagination parameters (may be {@code null})
      * @return list of comments
      * @throws GistException on API error
      */
-    List<GistComment> listGistComments(String gistId);
+    List<GistComment> listGistComments(String gistId, PaginationParams params);
 
     /**
      * Creates a comment on a gist.
