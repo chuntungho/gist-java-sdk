@@ -1,10 +1,12 @@
 package com.chuntung.gist;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.chuntung.gist.exception.GistException;
 import com.chuntung.gist.model.CreateGistRequest;
 import com.chuntung.gist.model.Gist;
+import com.chuntung.gist.model.GistComment;
+import com.chuntung.gist.model.GistCommentRequest;
+import com.chuntung.gist.model.GistCommit;
 import com.chuntung.gist.model.ListGistsParams;
 import com.chuntung.gist.model.UpdateGistRequest;
 
@@ -38,37 +40,37 @@ class GistClientImpl implements GistClient {
 
     @Override
     public List<Gist> listGists(ListGistsParams params) {
-        String url = buildUrl("/gists", params);
+        String url = buildUrl("/user/gists", params);
         HttpRequest request = buildGetRequest(url);
-        return executeListRequest(request);
+        return executeListRequest(request, Gist.class);
     }
 
     @Override
     public Gist createGist(CreateGistRequest body) {
         if (body == null) throw new IllegalArgumentException("request must not be null");
         HttpRequest request = buildPostRequest(baseUrl + "/gists", serialize(body));
-        return executeSingleRequest(request);
+        return executeSingleRequest(request, Gist.class);
     }
 
     @Override
     public List<Gist> listPublicGists(ListGistsParams params) {
         String url = buildUrl("/gists/public", params);
         HttpRequest request = buildGetRequest(url);
-        return executeListRequest(request);
+        return executeListRequest(request, Gist.class);
     }
 
     @Override
     public List<Gist> listStarredGists(ListGistsParams params) {
         String url = buildUrl("/gists/starred", params);
         HttpRequest request = buildGetRequest(url);
-        return executeListRequest(request);
+        return executeListRequest(request, Gist.class);
     }
 
     @Override
     public Gist getGist(String gistId) {
         requireNonBlank(gistId, "gistId");
         HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId);
-        return executeSingleRequest(request);
+        return executeSingleRequest(request, Gist.class);
     }
 
     @Override
@@ -76,7 +78,7 @@ class GistClientImpl implements GistClient {
         requireNonBlank(gistId, "gistId");
         if (body == null) throw new IllegalArgumentException("request must not be null");
         HttpRequest request = buildPatchRequest(baseUrl + "/gists/" + gistId, serialize(body));
-        return executeSingleRequest(request);
+        return executeSingleRequest(request, Gist.class);
     }
 
     @Override
@@ -84,6 +86,106 @@ class GistClientImpl implements GistClient {
         requireNonBlank(gistId, "gistId");
         HttpRequest request = buildDeleteRequest(baseUrl + "/gists/" + gistId);
         executeVoidRequest(request);
+    }
+
+    @Override
+    public List<GistCommit> listGistCommits(String gistId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/commits");
+        return executeListRequest(request, GistCommit.class);
+    }
+
+    @Override
+    public List<Gist> listGistForks(String gistId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/forks");
+        return executeListRequest(request, Gist.class);
+    }
+
+    @Override
+    public Gist forkGist(String gistId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildPostEmptyRequest(baseUrl + "/gists/" + gistId + "/forks");
+        return executeSingleRequest(request, Gist.class);
+    }
+
+    @Override
+    public boolean isGistStarred(String gistId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/star");
+        HttpResponse<String> response = send(request);
+        int status = response.statusCode();
+        if (status == 204) return true;
+        if (status == 404) return false;
+        checkStatus(response);
+        return false;
+    }
+
+    @Override
+    public void starGist(String gistId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildPutRequest(baseUrl + "/gists/" + gistId + "/star");
+        executeVoidRequest(request);
+    }
+
+    @Override
+    public void unstarGist(String gistId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildDeleteRequest(baseUrl + "/gists/" + gistId + "/star");
+        executeVoidRequest(request);
+    }
+
+    @Override
+    public List<GistComment> listGistComments(String gistId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/comments");
+        return executeListRequest(request, GistComment.class);
+    }
+
+    @Override
+    public GistComment createGistComment(String gistId, GistCommentRequest body) {
+        requireNonBlank(gistId, "gistId");
+        if (body == null) throw new IllegalArgumentException("request must not be null");
+        HttpRequest request = buildPostRequest(baseUrl + "/gists/" + gistId + "/comments", serialize(body));
+        return executeSingleRequest(request, GistComment.class);
+    }
+
+    @Override
+    public GistComment getGistComment(String gistId, long commentId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/comments/" + commentId);
+        return executeSingleRequest(request, GistComment.class);
+    }
+
+    @Override
+    public GistComment updateGistComment(String gistId, long commentId, GistCommentRequest body) {
+        requireNonBlank(gistId, "gistId");
+        if (body == null) throw new IllegalArgumentException("request must not be null");
+        HttpRequest request = buildPatchRequest(baseUrl + "/gists/" + gistId + "/comments/" + commentId, serialize(body));
+        return executeSingleRequest(request, GistComment.class);
+    }
+
+    @Override
+    public void deleteGistComment(String gistId, long commentId) {
+        requireNonBlank(gistId, "gistId");
+        HttpRequest request = buildDeleteRequest(baseUrl + "/gists/" + gistId + "/comments/" + commentId);
+        executeVoidRequest(request);
+    }
+
+    @Override
+    public List<Gist> listUserGists(String username, ListGistsParams params) {
+        requireNonBlank(username, "username");
+        String url = buildUrl("/users/" + encode(username) + "/gists", params);
+        HttpRequest request = buildGetRequest(url);
+        return executeListRequest(request, Gist.class);
+    }
+
+    @Override
+    public Gist getGistRevision(String gistId, String sha) {
+        requireNonBlank(gistId, "gistId");
+        requireNonBlank(sha, "sha");
+        HttpRequest request = buildGetRequest(baseUrl + "/gists/" + gistId + "/" + sha);
+        return executeSingleRequest(request, Gist.class);
     }
 
     // --- HTTP helpers ---
@@ -98,6 +200,18 @@ class GistClientImpl implements GistClient {
         return baseRequestBuilder(url)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+    }
+
+    private HttpRequest buildPostEmptyRequest(String url) {
+        return baseRequestBuilder(url)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+    }
+
+    private HttpRequest buildPutRequest(String url) {
+        return baseRequestBuilder(url)
+                .PUT(HttpRequest.BodyPublishers.noBody())
                 .build();
     }
 
@@ -127,21 +241,23 @@ class GistClientImpl implements GistClient {
 
     // --- Response handlers ---
 
-    private List<Gist> executeListRequest(HttpRequest request) {
+    private <T> List<T> executeListRequest(HttpRequest request, Class<T> elementClass) {
         HttpResponse<String> response = send(request);
         checkStatus(response);
         try {
-            return objectMapper.readValue(response.body(), new TypeReference<List<Gist>>() {});
+            var collectionType = objectMapper.getTypeFactory()
+                    .constructCollectionType(List.class, elementClass);
+            return objectMapper.readValue(response.body(), collectionType);
         } catch (IOException e) {
             throw new GistException("Failed to deserialize response", e);
         }
     }
 
-    private Gist executeSingleRequest(HttpRequest request) {
+    private <T> T executeSingleRequest(HttpRequest request, Class<T> clazz) {
         HttpResponse<String> response = send(request);
         checkStatus(response);
         try {
-            return objectMapper.readValue(response.body(), Gist.class);
+            return objectMapper.readValue(response.body(), clazz);
         } catch (IOException e) {
             throw new GistException("Failed to deserialize response", e);
         }
